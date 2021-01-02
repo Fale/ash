@@ -16,9 +16,13 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ash.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ash/config.yaml)")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "explain what is being done")
+	rootCmd.PersistentFlags().StringP("workspace", "w", "default", "set the desired workspace")
 	if err := viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose")); err != nil {
+		panic(err)
+	}
+	if err := viper.BindPFlag("workspace", rootCmd.PersistentFlags().Lookup("workspace")); err != nil {
 		panic(err)
 	}
 }
@@ -31,18 +35,18 @@ func main() {
 }
 
 func initConfig() {
+	home, err := homedir.Dir()
+	if err != nil {
+		panic(err)
+	}
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
-		home, err := homedir.Dir()
-		if err != nil {
-			panic(err)
-		}
-
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".ash")
+		viper.AddConfigPath(fmt.Sprintf("%v/.ash", home))
+		viper.SetConfigName("config")
 	}
 
+	viper.SetDefault("workspaces", []workspace{{Name: "default", Location: fmt.Sprintf("%v/.ash/default", home)}})
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err == nil {
